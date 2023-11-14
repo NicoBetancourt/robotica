@@ -5,9 +5,9 @@ import numpy as np
 import cv2
 
 # Constantes de control PID
-kp = 0.01  # Ganancia proporcional
+kp = 0.005  # Ganancia proporcional
 ki = 0.000001  # Ganancia integral
-kd = 0.015  # Ganancia derivativa
+kd = 0.01  # Ganancia derivativa
 
 # Variables de control PID
 last_error = 0
@@ -41,11 +41,12 @@ while True:
     w = kp * error + ki * integral + kd * derivative
 
     # Establecer velocidad lineal y angular
-    vel = 2-abs(error/317)
+    vel = 4# - abs(error*6/317)
     HAL.setV(vel)  # Velocidad lineal constante
     HAL.setW(w)
     
     GUI.showImage(masked_image)
     #print(f'cx: {cx}, Error: {error}, w: {w}')
-    print('%d cx: %.0f cy: %.0f w: %.3f error: %.3f vel: %.0f' % (i, cx, cy, w, error, vel))
+    print('%d cx: %.0f cy: %.0f w: %.3f error: %.3f derivative: %.3f integral: %.3f vel: %.0f' % (i, cx, cy, w, error, derivative, integral, vel))
     i = i + 1
+    
