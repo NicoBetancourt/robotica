@@ -1,36 +1,52 @@
 from GUI import GUI
 from HAL import HAL
 # Enter sequential code!
-
+import numpy as np
 import cv2
+
+# Constantes de control PID
+kp = 0.005  # Ganancia proporcional
+ki = 0.000001  # Ganancia integral
+kd = 0.01  # Ganancia derivativa
+
+# Variables de control PID
+last_error = 0
+integral = 0
 
 i = 0
 while True:
-    # Enter iterative code!
+    # Captura la imagen de la cámara
     img = HAL.getImage()
-    
-    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-    red_mask = cv2.inRange(hsv,
-                          (0,125,125),
-                          (30, 255, 255))
-                          
-    contours, hierarchy = cv2.findContours(red_mask,
-    cv2.RETR_TREE,
-    cv2.CHAIN_APPROX_SIMPLE)
-    
-    M = cv2.moments(contours[0])
+    h , ancho , d = img.shape
+    # Preprocesamiento de la imagen (ajusta estos valores según la realidad)
+    lower_bound = np.array([0, 0, 200])
+    upper_bound = np.array([50, 50, 255])
+    masked_image = cv2.inRange(img, lower_bound, upper_bound)
+    # Encuentra el centro de la línea (ajusta esta parte según la realidad)
+    M = cv2.moments(masked_image)
     
     if M["m00"] != 0:
-      cx = M["m10"] / M["m00"]
-      cy = M["m01"] / M["m00"]
+        cx = int(M["m10"] / M["m00"])
+        cy = int(M["m01"] / M["m00"])
     else:
-      cx, cy = 0, 0
+        cx, cy = 0, 0
       
-    if cx > 0:
-      err = 320 - cx
-      HAL.setV(1)
-      HAL.setW(0.01 * err)
+    # Control PID
+    error = 317 - cx   # Error de seguimiento
+    integral += error  # Término integral
+    derivative = error - last_error  # Término derivativo
+    last_error = error
+
+    # Calcular velocidad angular usando PID
+    w = kp * error + ki * integral + kd * derivative
+
+    # Establecer velocidad lineal y angular
+    vel = 4# - abs(error*6/317)
+    HAL.setV(vel)  # Velocidad lineal constante
+    HAL.setW(w)
     
-    GUI.showImage(red_mask)
-    print('%d cx: %.2f cy: %.2f' % (i, cx, cy))
+    GUI.showImage(masked_image)
+    #print(f'cx: {cx}, Error: {error}, w: {w}')
+    print('%d cx: %.0f cy: %.0f w: %.3f error: %.3f derivative: %.3f integral: %.3f vel: %.0f' % (i, cx, cy, w, error, derivative, integral, vel))
     i = i + 1
+    
